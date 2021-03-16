@@ -11,6 +11,7 @@
 const int SPI_CS_PIN = 9;
 
 #define EPS_Serial Serial
+#define debug_Serial Serial1
 
 #define PB_LeftPin 4
 #define PB_RightPin 5
@@ -51,12 +52,18 @@ uint8_t PB_ButtonActive = 0;
 
 int8_t LkasCountdown = 5;
 
+
+//     ***********************************   FUNCTIONS delcarations *******************************
+
 uint8_t honda_compute_checksum(uint8_t *steerTorqueAndMotorTorque, uint8_t len, unsigned int addr);
 uint8_t chksm(uint8_t firstByte, uint8_t secondByte, uint8_t thirdByte);
 
 void sendSteerStatus();
-
 void buildSendAllLinDataCanMsg();
+void printuint_t(uint8_t var);
+void printEPSArray(uint8_t *msg);
+
+
 
 void sentToEPS_Serial(uint8_t *a) {
   EPS_Serial.write(*a);
@@ -145,9 +152,9 @@ void readSerial() {
   if (data < 32) EPStoLKASBufferCounter = 0;
   EPStoLKASBuffer[EPStoLKASBufferCounter] = data;
 
-  if (data > 32) {  //debug
-    Serial1.print("Data = "); Serial1.println(data);
-  }
+//  if (data > 32) {  //debug   /////////////// This was commented as below in the if, when it gets the 5th byte it will print the whole message at once in binary. 
+//    Serial1.print("Data = "); Serial1.println(data);
+//  }
 
   if (EPStoLKASBufferCounter > B00000011) {
     sendSteerStatus();
@@ -155,9 +162,11 @@ void readSerial() {
     EPStoLKASBufferCounter = 0;
     OPCanCounter++;
     OPCanCounter &= 3;
-    Serial1.print("E");
-    Serial1.print((EPStoLKASBuffer[2] & 2) >> 1, DEC);
-    Serial1.println(EPStoLKASBuffer[2] & 1, DEC);
+    Serial1.print("E:");
+//    Serial1.print((EPStoLKASBuffer[2] & 2) >> 1, DEC);
+//    Serial1.println(EPStoLKASBuffer[2] & 1, DEC);
+    printEPSArray(&EPStoLKASBuffer[0]);
+    debug_Serial.println();
   }
 
 }
@@ -269,6 +278,39 @@ void handleTimedFunc() {
 
   sendCounter = 0;
 }
+
+
+
+
+
+
+
+
+void printuint_t(uint8_t var) { ///i stole this from my program https://github.com/reddn/LIN2LINrepeaterMEGA, i think it should work
+  for (uint8_t test = 0x80; test; test >>= 1) {
+     if(test == 0x8) debug_Serial.write(' '); // 0x8 is 0000 1000.. so it gives a break between the 2 4 bit writes
+    debug_Serial.write(var  & test ? '1' : '0');
+  }
+}
+
+
+void printEPSArray(uint8_t *msg){ //msg is array[0]
+   for(char zz = 0; zz<5; zz++){
+      printuint_t(*(msg+zz));
+      if(zz != 4) debug_Serial.print("  ");
+   }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
